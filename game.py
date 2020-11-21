@@ -11,6 +11,7 @@ If Python and Arcade are installed, this example can be run from the command lin
 python -m arcade.examples.array_backed_grid_sprites_1
 """
 import arcade
+from typing import List, Optional
 
 # Set how many rows and columns we will have
 ROW_COUNT = 15
@@ -30,6 +31,39 @@ SCREEN_HEIGHT = (HEIGHT + MARGIN) * ROW_COUNT + MARGIN
 SCREEN_TITLE = "Array Backed Grid Example"
 
 
+class Ship:
+    def __init__(self, length: int, row: int, column: int, orientation):
+        self.length = length
+        self.row = row
+        self.column = column
+        self.occupied_space = []
+        self.hits = set()
+        if orientation not in ["row", "column"]:
+            raise ValueError("Unknown orientation {}".format(orientation))
+        self.orientation = orientation
+        self._compute_occupied_space()
+
+    def _compute_occupied_space(self):
+        if self.orientation == "row":
+            for column in range(self.column, self.column + self.length):
+                self.occupied_space.append((self.row, column))
+        if self.orientation == "column":
+            for row in range(self.row, self.row + self.length):
+                self.occupied_space.append((row, self.column))
+    
+    def is_at(self, row: int, column: int) -> bool:
+        return (row, column) in self.occupied_space
+
+    def hit_at(self, row: int, column: int) -> bool:
+        if not self.is_at(row, column):
+            raise ValueError(f"Ship is not at {row}, {column}, so cannot get hit.")
+        self.hits.add((row, column))
+
+    def is_sunk(self) -> bool:
+        return set(self.hits) == set(self.occupied_space)
+        
+
+
 class MyGame(arcade.Window):
     """
     Main application class.
@@ -41,6 +75,9 @@ class MyGame(arcade.Window):
         """
         super().__init__(width, height, title)
 
+        self.ships: List[Ship] = []
+        self._place_ships()
+
         # Create a 2 dimensional array. A two dimensional
         # array is simply a list of lists.
         self.grid = []
@@ -49,7 +86,7 @@ class MyGame(arcade.Window):
             # in this row
             self.grid.append([])
             for column in range(COLUMN_COUNT):
-                self.grid[row].append(0)  # Append a cell
+                self.grid[row].append("unknown")  # Append a cell
 
         arcade.set_background_color(arcade.color.BLACK)
 
@@ -65,6 +102,18 @@ class MyGame(arcade.Window):
                 sprite.center_y = y
                 self.grid_sprite_list.append(sprite)
 
+
+    def _place_ships(self):
+        ship = Ship(4, 4, 4, "column")
+        self.ships.append(ship)
+
+    def _get_ship_at(self, row: int, column: int) -> Optional[Ship]:
+        for ship in self.ships:
+            if ship.is_at(row, column):
+                return ship
+        return None
+
+
     def resync_grid_with_sprites(self):
         self.shape_list = arcade.ShapeElementList()
         for row in range(ROW_COUNT):
@@ -76,10 +125,17 @@ class MyGame(arcade.Window):
                 # ALTERNATIVELY you could set self.grid_sprite_list[pos].texture
                 # to different textures to change the image instead of the color.
                 pos = row * COLUMN_COUNT + column
-                if self.grid[row][column] == 0:
+                grid_value = self.grid[row][column]
+                if grid_value == "unknown":
                     self.grid_sprite_list[pos].color = arcade.color.WHITE
+                elif grid_value == "ship":
+                    self.grid_sprite_list[pos].color = arcade.color.BROWN
+                elif grid_value == "sunk ship":
+                    self.grid_sprite_list[pos].color = arcade.color.BLACK
+                elif grid_value == "water":
+                    self.grid_sprite_list[pos].color = arcade.color.BLUE
                 else:
-                    self.grid_sprite_list[pos].color = arcade.color.GREEN
+                    raise ValueError(f"Grid value {grid_value} not expected")
 
     def on_draw(self):
         """
@@ -106,11 +162,19 @@ class MyGame(arcade.Window):
         # corner in the margin and go to a grid location that doesn't exist
         if row < ROW_COUNT and column < COLUMN_COUNT:
 
-            # Flip the location between 1 and 0.
-            if self.grid[row][column] == 0:
-                self.grid[row][column] = 1
+            if self.grid[row][column] == "unknown":
+                hit_ship = self._get_ship_at(row, column)
+                if hit_ship is None:
+                    self.grid[row][column] = "water"
+                else:
+                    hit_ship.hit_at(row, column)
+                    if hit_ship.is_sunk():
+                        for ship_row, ship_col in hit_ship.occupied_space:
+                            self.grid[ship_row][ship_col] = "sunk ship"
+                    else:
+                        self.grid[row][column] = "ship"
             else:
-                self.grid[row][column] = 0
+                print(f"Grid Cell ({row}, {column}) was already known")
 
         self.resync_grid_with_sprites()
 
