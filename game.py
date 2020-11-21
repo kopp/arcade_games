@@ -16,8 +16,8 @@ from typing import List, Optional, Tuple
 
 
 # Set how many rows and columns we will have
-ROW_COUNT = 12
-COLUMN_COUNT = 12
+ROW_COUNT = 13
+COLUMN_COUNT = 13
 
 # This sets the WIDTH and HEIGHT of each grid location
 WIDTH = 30
@@ -89,11 +89,12 @@ class MyGame(arcade.Window):
         self.ships_to_sink_of_size = {
             3: 4,
             4: 3,
-            5: 3,
+            5: 2,
             6: 2,
         }
         self.ships: List[Ship] = []
         self._place_ships()
+        self.game_won = False
 
         # Create a 2 dimensional array. A two dimensional
         # array is simply a list of lists.
@@ -120,6 +121,7 @@ class MyGame(arcade.Window):
                 self.grid_sprite_list.append(sprite)
 
     def _place_ships(self):
+        collissions = 0
         for ship_size in sorted(self.ships_to_sink_of_size.keys(), reverse=True):
             ships_to_place = self.ships_to_sink_of_size[ship_size]
             ships_placed = 0
@@ -136,6 +138,12 @@ class MyGame(arcade.Window):
                 if not ship_is_in_collission:
                     ships_placed += 1
                     self.ships.append(possible_ship)
+                else:
+                    collissions += 1
+                    if collissions > 100000:
+                        print("Ship Placement unsucessfull -- retrying")
+                        self.ships = []
+                        self._place_ships()
 
     def _get_ship_at(self, row: int, column: int) -> Optional[Ship]:
         for ship in self.ships:
@@ -177,6 +185,7 @@ class MyGame(arcade.Window):
 
         self.grid_sprite_list.draw()
 
+
     def on_key_press(self, key, modifiers):
         if key == arcade.key.Q:
             print("Bye")
@@ -200,11 +209,16 @@ class MyGame(arcade.Window):
             else:
                 self.grid[row][column] = "ship"
 
-    def _check_game_is_won(self):
+    def _is_game_won(self):
+        ships_to_sink = sum(self.ships_to_sink_of_size.values())
+        return ships_to_sink == 0
+
+    def _print_how_much_to_sink(self):
         ships_to_sink = sum(self.ships_to_sink_of_size.values())
         print(f"Still {ships_to_sink} ships to sink.")
         if ships_to_sink == 0:
             print(f"You Won after {self.number_of_shots} shots.")
+        self.game_won = True
 
     def shoot_at(self, row, column):
         self.number_of_shots += 1
@@ -213,9 +227,11 @@ class MyGame(arcade.Window):
             ship.hit_at(row, column)
             if ship.is_sunk():
                 self.ships_to_sink_of_size[ship.length] -= 1
-                self._check_game_is_won()
+                self._print_how_much_to_sink()
 
     def _status_text_ships_to_sink(self):
+        if self._is_game_won():
+            return "Nothing to sink -- YOU WON"
         text = "To sink: "
         for size, number_of_ships_to_find in self.ships_to_sink_of_size.items():
             if number_of_ships_to_find == 0:
@@ -233,8 +249,6 @@ class MyGame(arcade.Window):
         # Change the x/y screen coordinates to grid coordinates
         column = int(x // (WIDTH + MARGIN))
         row = int(y // (HEIGHT + MARGIN))
-
-        print(f"Click coordinates: ({x}, {y}). Grid coordinates: ({row}, {column})")
 
         # Make sure we are on-grid. It is possible to click in the upper right
         # corner in the margin and go to a grid location that doesn't exist
