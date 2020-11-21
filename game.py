@@ -1,15 +1,8 @@
-# Start from https://arcade.academy/examples/array_backed_grid_sprites_1.html#array-backed-grid-sprites-1
 """
-Array Backed Grid Shown By Sprites
-
-Show how to use a two-dimensional list/array to back the display of a
-grid on-screen.
-
-This version syncs the grid to the sprite list in one go using resync_grid_with_sprites.
-
-If Python and Arcade are installed, this example can be run from the command line with:
-python -m arcade.examples.array_backed_grid_sprites_1
+Battleship -- based on
+https://arcade.academy/examples/array_backed_grid_sprites_1.html#array-backed-grid-sprites-1
 """
+
 import arcade
 from random import choice, randint
 from typing import List, Optional, Tuple
@@ -30,7 +23,7 @@ MARGIN = 5
 # Do the math to figure out our screen dimensions
 SCREEN_WIDTH = (WIDTH + MARGIN) * COLUMN_COUNT + MARGIN
 SCREEN_HEIGHT = (HEIGHT + MARGIN) * ROW_COUNT + MARGIN
-SCREEN_TITLE = "Array Backed Grid Example"
+SCREEN_TITLE = "Battleship"
 
 
 class Ship:
