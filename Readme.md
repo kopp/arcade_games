@@ -6,6 +6,11 @@ Some simple games written with
 
 # The Games
 
+Run a game using `python <name>`.
+Make sure that you have the
+[requirements](requirements.txt)
+installed (i.e. `pip install -r requirements.txt`).
+
 ## `find_fastest_way.py`
 
 Hlep the frog to get to his little green friend.
